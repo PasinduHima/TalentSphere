@@ -1,0 +1,83 @@
+.auth-left-pane {
+  position: relative;
+  overflow: hidden;
+}
+
+.slider-wrapper {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.8s ease-in-out;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+}
+
+.slide {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.slide-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(15, 23, 42, 0.6); /* Soft dark overlay for text contrast */
+}
+
+.spotlight-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  /* Spotlight effect using CSS variables updated by React */
+  background: radial-gradient(
+    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), 
+    rgba(255, 255, 255, 0.15),
+    transparent 40%
+  );
+  transition: opacity 0.3s ease;
+}
+
+.hero-text-block {
+  position: absolute;
+  top: 60px;
+  left: 60px;
+  z-index: 2;
+  color: #FFFFFF;
+  font-family: 'Montserrat', 'Open Sans', system-ui, sans-serif;
+}
+
+.hero-text-block h1 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin: 0;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+  letter-spacing: -0.02em;
+  color: #FFFFFF;
+  line-height: 1.1;
+}
+
+.hero-text-block h2 {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin: 12px 0 0 0;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+  color: #f8fafc;
+  line-height: 1.4;
+}

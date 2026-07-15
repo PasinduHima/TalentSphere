@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+<<<<<<< HEAD
+=======
+Docs/
+
+>>>>>>> himal
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
