@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="TalentSphere.API/TalentSphere.API.csproj" />
+  <Project Path="TalentSphere.Application/TalentSphere.Application.csproj" />
+  <Project Path="TalentSphere.Domain/TalentSphere.Domain.csproj" />
+  <Project Path="TalentSphere.Infrastructure/TalentSphere.Infrastructure.csproj" />
+  <Project Path="TalentSphere.Tests/TalentSphere.Tests.csproj" />
+</Solution>
