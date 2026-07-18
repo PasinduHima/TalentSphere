@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Form, Input, Button, Card, Typography, theme, Row, Col } from 'antd';
+import { Form, Input, Button, Card, Typography, Alert, theme, Row, Col } from 'antd';
 import { Mail, Lock, User, Briefcase } from 'lucide-react';
 import { ROLES } from '../../../lib/constants';
+import { useAuthStore } from '../../../store/authStore';
+import { getApiErrorMessage } from '../../../lib/apiClient';
+import { getDefaultRouteForRole } from '../../../lib/roleMap';
 
 const { Title, Text } = Typography;
 
@@ -10,6 +13,8 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const { token } = theme.useToken();
+  const { registerCandidate, isLoading } = useAuthStore();
+  const [errorMessage, setErrorMessage] = useState(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -23,8 +28,19 @@ export default function RegisterPage() {
     setStep(step + 1);
   };
 
-  const handleSubmit = () => {
-    navigate('/login');
+  const handleSubmit = async () => {
+    setErrorMessage(null);
+    try {
+      const user = await registerCandidate({
+        email: formData.email,
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+      });
+      navigate(getDefaultRouteForRole(user.role));
+    } catch (err) {
+      setErrorMessage(getApiErrorMessage(err, 'Could not create your account.'));
+    }
   };
 
   return (
@@ -99,33 +115,37 @@ export default function RegisterPage() {
 
       {step === 3 && (
         <div>
-          <Text strong style={{ display: 'block', marginBottom: '12px' }}>Select your role</Text>
+          <Text strong style={{ display: 'block', marginBottom: '4px' }}>Select your role</Text>
+          <Text type="secondary" style={{ display: 'block', marginBottom: '12px', fontSize: '12px' }}>
+            Self-service sign-up is available for candidates. Recruiter and Hiring Manager accounts are provisioned by your organization's administrator.
+          </Text>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {[
-              { id: ROLES.CANDIDATE, title: 'Candidate', desc: 'I am looking for a job' },
-              { id: ROLES.RECRUITER, title: 'Recruiter', desc: 'I am hiring talent' },
-              { id: ROLES.HIRING_MANAGER, title: 'Hiring Manager', desc: 'I review candidates' },
+              { id: ROLES.CANDIDATE, title: 'Candidate', desc: 'I am looking for a job', disabled: false },
+              { id: ROLES.RECRUITER, title: 'Recruiter', desc: 'I am hiring talent — contact your admin', disabled: true },
+              { id: ROLES.HIRING_MANAGER, title: 'Hiring Manager', desc: 'I review candidates — contact your admin', disabled: true },
             ].map((roleOption) => {
               const isSelected = formData.role === roleOption.id;
               return (
-                <div 
+                <div
                   key={roleOption.id}
-                  onClick={() => setFormData({ ...formData, role: roleOption.id })}
+                  onClick={() => !roleOption.disabled && setFormData({ ...formData, role: roleOption.id })}
                   style={{
                     padding: '16px',
                     border: `1px solid ${isSelected ? token.colorPrimary : token.colorBorder}`,
                     backgroundColor: isSelected ? '#eef2ff' : '#fff',
                     borderRadius: '12px',
-                    cursor: 'pointer',
+                    cursor: roleOption.disabled ? 'not-allowed' : 'pointer',
+                    opacity: roleOption.disabled ? 0.5 : 1,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px',
                     transition: 'all 0.2s'
                   }}
                 >
-                  <div style={{ 
-                    padding: '8px', 
-                    borderRadius: '50%', 
+                  <div style={{
+                    padding: '8px',
+                    borderRadius: '50%',
                     backgroundColor: isSelected ? token.colorPrimary : '#f1f5f9',
                     display: 'flex'
                   }}>
@@ -139,9 +159,14 @@ export default function RegisterPage() {
               );
             })}
           </div>
+
+          {errorMessage && (
+            <Alert type="error" message={errorMessage} showIcon closable style={{ marginTop: '16px' }} onClose={() => setErrorMessage(null)} />
+          )}
+
           <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
             <Button size="large" onClick={() => setStep(2)} style={{ flex: 1 }}>Back</Button>
-            <Button type="primary" size="large" onClick={handleSubmit} style={{ flex: 1 }}>Complete Sign Up</Button>
+            <Button type="primary" size="large" onClick={handleSubmit} loading={isLoading} style={{ flex: 1 }}>Complete Sign Up</Button>
           </div>
         </div>
       )}

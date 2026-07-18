@@ -1,43 +1,82 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ROLES } from '../lib/constants';
+import { authApi } from '../lib/api/auth';
+import { tokenStorage } from '../lib/tokenStorage';
+import { toFrontendRole } from '../lib/roleMap';
+import { ROLE_LABELS } from '../lib/constants';
 
-// Mock user for initial development
-const MOCK_USER = {
-  id: '1',
-  name: 'Sarah Jenkins',
-  email: 'sarah.j@example.com',
-  role: ROLES.CANDIDATE,
-  avatar: 'https://i.pravatar.cc/150?u=sarah',
-};
+function mapUser(dto) {
+  const role = toFrontendRole(dto.role);
+  return {
+    id: dto.id,
+    email: dto.email,
+    firstName: dto.firstName,
+    lastName: dto.lastName,
+    name: `${dto.firstName} ${dto.lastName}`.trim(),
+    role,
+    roleLabel: ROLE_LABELS[role],
+    avatar: dto.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(dto.firstName + ' ' + dto.lastName)}&background=random`,
+    departmentId: dto.departmentId,
+    departmentName: dto.departmentName,
+    status: dto.status,
+    createdAt: dto.createdAt,
+    lastLoginAt: dto.lastLoginAt,
+  };
+}
 
 export const useAuthStore = create(
   persist(
-    (set) => ({
-      user: null, // Initially null, set to MOCK_USER if you want auto-login for dev
+    (set, get) => ({
+      user: null,
       isAuthenticated: false,
       isLoading: false,
+      error: null,
 
       login: async (email, password) => {
-        set({ isLoading: true });
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        
-        // Mock authentication logic based on email to switch roles easily during dev
-        let role = ROLES.CANDIDATE;
-        if (email.includes('recruiter')) role = ROLES.RECRUITER;
-        if (email.includes('hm') || email.includes('manager')) role = ROLES.HIRING_MANAGER;
-        if (email.includes('admin')) role = ROLES.ADMIN;
+        set({ isLoading: true, error: null });
+        try {
+          const data = await authApi.login(email, password);
+          tokenStorage.setTokens(data.accessToken, data.refreshToken);
+          set({ user: mapUser(data.user), isAuthenticated: true, isLoading: false });
+          return mapUser(data.user);
+        } catch (err) {
+          set({ isLoading: false, error: err?.response?.data?.title || 'Invalid email or password.' });
+          throw err;
+        }
+      },
 
-        set({
-          user: { ...MOCK_USER, email, role },
-          isAuthenticated: true,
-          isLoading: false,
-        });
+      registerCandidate: async ({ email, password, firstName, lastName }) => {
+        set({ isLoading: true, error: null });
+        try {
+          const data = await authApi.register({ email, password, firstName, lastName });
+          tokenStorage.setTokens(data.accessToken, data.refreshToken);
+          set({ user: mapUser(data.user), isAuthenticated: true, isLoading: false });
+          return mapUser(data.user);
+        } catch (err) {
+          set({ isLoading: false, error: err?.response?.data?.title || 'Could not create your account.' });
+          throw err;
+        }
       },
 
       logout: () => {
-        set({ user: null, isAuthenticated: false });
+        const refreshToken = tokenStorage.getRefreshToken();
+        if (refreshToken) {
+          authApi.logout(refreshToken).catch(() => {});
+        }
+        tokenStorage.clear();
+        set({ user: null, isAuthenticated: false, error: null });
+      },
+
+      refreshCurrentUser: async () => {
+        if (!tokenStorage.getAccessToken()) return null;
+        try {
+          const dto = await authApi.me();
+          const mapped = mapUser(dto);
+          set({ user: mapped, isAuthenticated: true });
+          return mapped;
+        } catch {
+          return get().user;
+        }
       },
 
       updateUser: (userData) => {
@@ -48,6 +87,7 @@ export const useAuthStore = create(
     }),
     {
       name: 'auth-storage',
+      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
     }
   )
 );

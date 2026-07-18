@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TalentSphere.Application.Common.Exceptions;
 using TalentSphere.Application.Common.Models;
@@ -17,19 +18,37 @@ public class RecruiterService : IRecruiterService
     private readonly ICalendarService _calendarService;
     private readonly INotificationService _notificationService;
     private readonly IAuditService _auditService;
+    private readonly UserManager<ApplicationUser> _userManager;
 
     public RecruiterService(
         IUnitOfWork unitOfWork,
         ICandidateMatchingService matchingService,
         ICalendarService calendarService,
         INotificationService notificationService,
-        IAuditService auditService)
+        IAuditService auditService,
+        UserManager<ApplicationUser> userManager)
     {
         _unitOfWork = unitOfWork;
         _matchingService = matchingService;
         _calendarService = calendarService;
         _notificationService = notificationService;
         _auditService = auditService;
+        _userManager = userManager;
+    }
+
+    public async Task<IReadOnlyList<DepartmentOptionDto>> GetDepartmentOptionsAsync(CancellationToken ct = default)
+    {
+        var departments = await _unitOfWork.Departments.Query().ToListAsync(ct);
+        return departments.Select(d => new DepartmentOptionDto(d.Id, d.Name)).ToList();
+    }
+
+    public async Task<IReadOnlyList<InterviewerOptionDto>> GetInterviewerOptionsAsync(CancellationToken ct = default)
+    {
+        var interviewers = await _userManager.Users
+            .Where(u => u.Role == UserRole.HiringManager || u.Role == UserRole.Recruiter)
+            .ToListAsync(ct);
+
+        return interviewers.Select(u => new InterviewerOptionDto(u.Id, u.FullName, u.Role.ToString())).ToList();
     }
 
     public async Task<JobPostingDto> CreateJobAsync(Guid recruiterId, CreateJobRequest request, CancellationToken ct = default)
@@ -216,15 +235,20 @@ public class RecruiterService : IRecruiterService
 
         application.Status = newStatus;
         application.NextStep = request.Notes;
-        application.StatusHistory.Add(new ApplicationStatusHistory
+
+        // application is already tracked (loaded via GetByIdAsync), so a child
+        // appended only via the lazy-loaded StatusHistory collection would be
+        // mis-detected as an existing row (its Id is pre-assigned by the entity's
+        // field initializer) and generate an UPDATE instead of an INSERT. Adding
+        // it through the repository explicitly marks it Added.
+        await _unitOfWork.ApplicationStatusHistories.AddAsync(new ApplicationStatusHistory
         {
             JobApplicationId = application.Id,
             Status = newStatus,
             Notes = request.Notes,
             ChangedByUserId = recruiterId,
-        });
+        }, ct);
 
-        _unitOfWork.JobApplications.Update(application);
         await _unitOfWork.SaveChangesAsync(ct);
         await _auditService.LogAsync("UpdateApplicationStatus", nameof(JobApplication), application.Id.ToString(), newStatus.ToString(), ct);
 
@@ -267,15 +291,13 @@ public class RecruiterService : IRecruiterService
 
         application.Status = ApplicationStatus.Interview;
         application.NextStep = $"Interview scheduled for {request.ScheduledAt:yyyy-MM-dd HH:mm}";
-        application.StatusHistory.Add(new ApplicationStatusHistory
+        await _unitOfWork.ApplicationStatusHistories.AddAsync(new ApplicationStatusHistory
         {
             JobApplicationId = application.Id,
             Status = ApplicationStatus.Interview,
             Notes = "Interview scheduled.",
             ChangedByUserId = recruiterId,
-        });
-        _unitOfWork.JobApplications.Update(application);
-
+        }, ct);
         await _unitOfWork.SaveChangesAsync(ct);
         await _auditService.LogAsync("ScheduleInterview", nameof(Interview), interview.Id.ToString(), null, ct);
 
@@ -302,7 +324,24 @@ public class RecruiterService : IRecruiterService
                 $"An interview for {application.JobPosting?.Title} has been scheduled on {request.ScheduledAt:f}."), ct);
         }
 
-        return await MapInterviewAsync(interview, ct);
+        // interview was created via `new Interview()` rather than materialized by
+        // a query, so it isn't a lazy-loading proxy instance and its navigation
+        // properties (e.g. Interviewer) won't lazy-load. Resolve the interviewer's
+        // name directly instead of relying on MapInterviewAsync's lazy loading.
+        var interviewer = await _userManager.FindByIdAsync(request.InterviewerId.ToString());
+
+        return new InterviewDto(
+            interview.Id,
+            interview.JobApplicationId,
+            application.CandidateProfile?.User?.FullName ?? string.Empty,
+            application.JobPosting?.Title ?? string.Empty,
+            interview.Type.ToString(),
+            interview.Status.ToString(),
+            interview.ScheduledAt,
+            interview.DurationMinutes,
+            interview.Location,
+            interview.MeetingLink,
+            interviewer?.FullName ?? string.Empty);
     }
 
     public async Task<IReadOnlyList<InterviewDto>> GetInterviewsAsync(Guid recruiterId, CancellationToken ct = default)

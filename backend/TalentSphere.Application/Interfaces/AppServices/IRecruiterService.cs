@@ -9,8 +9,14 @@ public class CandidateSearchFilter : PaginationParams
     public string? Skill { get; set; }
 }
 
+public record DepartmentOptionDto(Guid Id, string Name);
+public record InterviewerOptionDto(Guid Id, string FullName, string Role);
+
 public interface IRecruiterService
 {
+    Task<IReadOnlyList<DepartmentOptionDto>> GetDepartmentOptionsAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<InterviewerOptionDto>> GetInterviewerOptionsAsync(CancellationToken ct = default);
+
     Task<JobPostingDto> CreateJobAsync(Guid recruiterId, CreateJobRequest request, CancellationToken ct = default);
     Task<JobPostingDto> UpdateJobAsync(Guid recruiterId, Guid jobId, UpdateJobRequest request, CancellationToken ct = default);
     Task<IReadOnlyList<JobPostingDto>> GetMyJobsAsync(Guid recruiterId, CancellationToken ct = default);

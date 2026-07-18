@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TalentSphere.Application.Common.Exceptions;
 using TalentSphere.Application.DTOs.HiringManager;
@@ -14,12 +15,14 @@ public class HiringManagerService : IHiringManagerService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuditService _auditService;
     private readonly INotificationService _notificationService;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public HiringManagerService(IUnitOfWork unitOfWork, IAuditService auditService, INotificationService notificationService)
+    public HiringManagerService(IUnitOfWork unitOfWork, IAuditService auditService, INotificationService notificationService, UserManager<ApplicationUser> userManager)
     {
         _unitOfWork = unitOfWork;
         _auditService = auditService;
         _notificationService = notificationService;
+        _userManager = userManager;
     }
 
     public async Task<IReadOnlyList<ShortlistedCandidateDto>> GetShortlistedCandidatesAsync(CancellationToken ct = default)
@@ -36,6 +39,7 @@ public class HiringManagerService : IHiringManagerService
             a.MatchScore,
             a.Status.ToString(),
             a.CreatedAt,
+            a.Interviews.Select(i => new InterviewSummaryDto(i.Id, i.Type.ToString(), i.Status.ToString(), i.ScheduledAt)).ToList(),
             a.Interviews.SelectMany(i => i.Feedbacks).Select(f => new InterviewFeedbackSummaryDto(
                 f.Id, f.Evaluator?.FullName ?? string.Empty, f.OverallScore, f.Recommendation, f.CreatedAt)).ToList())).ToList();
     }
@@ -67,8 +71,12 @@ public class HiringManagerService : IHiringManagerService
         await _unitOfWork.SaveChangesAsync(ct);
         await _auditService.LogAsync("SubmitInterviewFeedback", nameof(InterviewFeedback), feedback.Id.ToString(), null, ct);
 
+        // feedback was created via `new InterviewFeedback()`, not materialized by a
+        // query, so it isn't a lazy-loading proxy and .Evaluator won't lazy-load.
+        var evaluator = await _userManager.FindByIdAsync(evaluatorId.ToString());
+
         return new InterviewFeedbackDto(
-            feedback.Id, feedback.InterviewId, feedback.Evaluator?.FullName ?? string.Empty,
+            feedback.Id, feedback.InterviewId, evaluator?.FullName ?? string.Empty,
             feedback.TechnicalScore, feedback.CommunicationScore, feedback.CultureFitScore, feedback.OverallScore,
             feedback.Comments, feedback.Recommendation, feedback.CreatedAt);
     }
@@ -107,15 +115,13 @@ public class HiringManagerService : IHiringManagerService
             HiringDecisionType.Reject => ApplicationStatus.Rejected,
             _ => application.Status,
         };
-        application.StatusHistory.Add(new ApplicationStatusHistory
+        await _unitOfWork.ApplicationStatusHistories.AddAsync(new ApplicationStatusHistory
         {
             JobApplicationId = application.Id,
             Status = application.Status,
             Notes = $"Hiring decision recorded: {decisionType}",
             ChangedByUserId = decidedByUserId,
-        });
-        _unitOfWork.JobApplications.Update(application);
-
+        }, ct);
         await _unitOfWork.SaveChangesAsync(ct);
         await _auditService.LogAsync("RecordHiringDecision", nameof(HiringDecisionRecord), record.Id.ToString(), decisionType.ToString(), ct);
 
@@ -131,12 +137,16 @@ public class HiringManagerService : IHiringManagerService
                 $"A decision has been made regarding your application for {application.JobPosting?.Title}: {decisionType}."), ct);
         }
 
+        // record was created via `new HiringDecisionRecord()`, not materialized by
+        // a query, so it isn't a lazy-loading proxy and .DecidedBy won't lazy-load.
+        var decidedByUser = await _userManager.FindByIdAsync(decidedByUserId.ToString());
+
         return new HiringDecisionDto(
             record.Id, application.Id,
             application.CandidateProfile?.User?.FullName ?? string.Empty,
             application.JobPosting?.Title ?? string.Empty,
             decisionType.ToString(), record.Notes,
-            record.DecidedBy?.FullName ?? string.Empty,
+            decidedByUser?.FullName ?? string.Empty,
             record.DecidedAt);
     }
 

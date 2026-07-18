@@ -1,28 +1,35 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../../store/authStore';
-import { Form, Input, Button, Checkbox, Divider, Typography, Card, theme } from 'antd';
+import { Form, Input, Button, Checkbox, Divider, Typography, Card, Alert, theme } from 'antd';
 import { Mail, Lock, Building2 } from 'lucide-react';
+import { getApiErrorMessage } from '../../../lib/apiClient';
+import { getDefaultRouteForRole } from '../../../lib/roleMap';
 
-const { Title, Text, Link } = Typography;
+const { Title, Text } = Typography;
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login, isLoading } = useAuthStore();
   const [form] = Form.useForm();
   const { token } = theme.useToken();
+  const [errorMessage, setErrorMessage] = useState(null);
 
   const onFinish = async (values) => {
-    await login(values.email || 'candidate@example.com', values.password || 'password123');
-    const { user } = useAuthStore.getState();
-    if (user) {
-      const rolePath = user.role === 'hiring_manager' ? 'hiring-manager' : user.role;
-      navigate(`/${rolePath}/dashboard`);
+    setErrorMessage(null);
+    try {
+      const user = await login(values.email, values.password);
+      navigate(getDefaultRouteForRole(user.role));
+    } catch (err) {
+      setErrorMessage(getApiErrorMessage(err, 'Invalid email or password.'));
     }
   };
 
+  // Seeded demo accounts follow the pattern <Role>@12345 (see backend DbSeeder).
   const setDevEmail = (email) => {
-    form.setFieldsValue({ email, password: 'password123' });
+    const localPart = email.split('@')[0];
+    const password = `${localPart[0].toUpperCase()}${localPart.slice(1)}@12345`;
+    form.setFieldsValue({ email, password });
   };
 
   return (
@@ -31,8 +38,12 @@ export default function LoginPage() {
         <Title level={3} style={{ margin: 0, fontWeight: 700 }}>Log In</Title>
       </div>
 
+      {errorMessage && (
+        <Alert type="error" message={errorMessage} showIcon closable style={{ marginBottom: '24px' }} onClose={() => setErrorMessage(null)} />
+      )}
+
       <Form form={form} layout="vertical" onFinish={onFinish} size="large" requiredMark={false}>
-        <Form.Item 
+        <Form.Item
           label={<Text strong>Email Address</Text>}
           name="email"
           rules={[{ required: true, message: 'Please input your email!' }]}
@@ -94,14 +105,14 @@ export default function LoginPage() {
         <a href="/register" style={{ fontWeight: 500, color: token.colorPrimary, fontSize: '14px' }}>Create one</a>
       </div>
 
-      {/* Dev helper to switch roles */}
+      {/* Fills in the seeded demo accounts created by the backend's DbSeeder */}
       <div style={{ marginTop: '40px', paddingTop: '16px', borderTop: `1px solid ${token.colorBorder}` }}>
-        <Text type="secondary" style={{ display: 'block', textAlign: 'center', fontSize: '12px', marginBottom: '8px' }}>Development Helper: Switch Roles</Text>
+        <Text type="secondary" style={{ display: 'block', textAlign: 'center', fontSize: '12px', marginBottom: '8px' }}>Demo accounts (seeded by the backend)</Text>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
-          <Button size="small" onClick={() => setDevEmail('candidate@example.com')}>Candidate</Button>
-          <Button size="small" onClick={() => setDevEmail('recruiter@example.com')}>Recruiter</Button>
-          <Button size="small" onClick={() => setDevEmail('manager@example.com')}>Manager</Button>
-          <Button size="small" onClick={() => setDevEmail('admin@example.com')}>Admin</Button>
+          <Button size="small" onClick={() => setDevEmail('candidate@talentsphere.local')}>Candidate</Button>
+          <Button size="small" onClick={() => setDevEmail('recruiter@talentsphere.local')}>Recruiter</Button>
+          <Button size="small" onClick={() => setDevEmail('manager@talentsphere.local')}>Manager</Button>
+          <Button size="small" onClick={() => setDevEmail('admin@talentsphere.local')}>Admin</Button>
         </div>
       </div>
     </Card>

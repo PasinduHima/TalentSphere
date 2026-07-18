@@ -9,7 +9,14 @@ public record ShortlistedCandidateDto(
     double MatchScore,
     string Status,
     DateTime CreatedAt,
+    IReadOnlyList<InterviewSummaryDto> Interviews,
     IReadOnlyList<InterviewFeedbackSummaryDto> Feedbacks);
+
+public record InterviewSummaryDto(
+    Guid Id,
+    string Type,
+    string Status,
+    DateTime ScheduledAt);
 
 public record InterviewFeedbackSummaryDto(
     Guid Id,

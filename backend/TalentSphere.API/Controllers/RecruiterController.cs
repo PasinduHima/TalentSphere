@@ -18,6 +18,14 @@ public class RecruiterController : ApiControllerBase
         _recruiterService = recruiterService;
     }
 
+    [HttpGet("departments")]
+    public async Task<ActionResult<IReadOnlyList<DepartmentOptionDto>>> GetDepartments(CancellationToken ct) =>
+        Ok(await _recruiterService.GetDepartmentOptionsAsync(ct));
+
+    [HttpGet("interviewers")]
+    public async Task<ActionResult<IReadOnlyList<InterviewerOptionDto>>> GetInterviewers(CancellationToken ct) =>
+        Ok(await _recruiterService.GetInterviewerOptionsAsync(ct));
+
     [HttpPost("jobs")]
     public async Task<ActionResult<JobPostingDto>> CreateJob([FromBody] CreateJobRequest request, CancellationToken ct) =>
         Ok(await _recruiterService.CreateJobAsync(CurrentUserId, request, ct));

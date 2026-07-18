@@ -90,10 +90,13 @@ paste `Bearer <access_token>` after logging in via `/api/auth/login`.
 
 ### Connecting the React frontend
 
-The API's default CORS policy allows `http://localhost:5173` (the Vite dev
-server). Point the frontend's API base URL at `http://localhost:5299` (or
-whatever port `dotnet run` binds) and replace the mock `authStore`/`mockData`
-calls with real `fetch`/`axios` calls against the endpoints below.
+The frontend is already wired up to this API (see `frontend/src/lib/api/*`
+and `frontend/src/store/authStore.js`) — see the [repo root README](../README.md)
+for the combined run/test walkthrough. The API's default CORS policy allows
+`http://localhost:5173` (the Vite dev server); the frontend's base URL is set
+via `VITE_API_BASE_URL` in `frontend/.env` (defaults to
+`http://localhost:5185/api`, matching this API's default `http` launch
+profile port).
 
 ## API surface
 
