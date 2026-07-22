@@ -12,6 +12,8 @@ dist
 dist-ssr
 *.local
 
+
+
 Docs/
 
 # Editor directories and files
@@ -24,3 +26,7 @@ Docs/
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files
+.env
+.env.*

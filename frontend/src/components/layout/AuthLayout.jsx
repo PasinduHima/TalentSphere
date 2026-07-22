@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Layout, Typography, theme } from 'antd';
+import { Layout, theme } from 'antd';
 import './AuthLayout.css';
-
-const { Text } = Typography;
 
 // Add your professional images to the frontend/public/carousel/ directory.
 // You can easily swap these filenames when you have the actual assets.
@@ -79,16 +77,20 @@ export default function AuthLayout() {
       </div>
       
       {/* Right Pane - Form area */}
-      <div style={{
+      <div className="auth-right-pane" style={{
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '48px',
-        backgroundColor: '#fff'
       }}>
-        <div style={{ width: '100%', maxWidth: '440px' }}>
+        {/* Decorative Floating Background Blobs */}
+        <div className="decorative-blob blob-1"></div>
+        <div className="decorative-blob blob-2"></div>
+
+        {/* Animated Container for Login/Register Form */}
+        <div className="animate-fade-in-up" style={{ width: '100%', maxWidth: '440px' }}>
           <Outlet />
         </div>
       </div>

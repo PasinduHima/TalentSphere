@@ -1,47 +1,69 @@
-import React from 'react';
-import { Card, Button, Typography, Row, Col, theme } from 'antd';
-import { 
+import React, { useEffect, useState } from 'react';
+import { Card, Typography, Row, Col, theme, Spin, message } from 'antd';
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from 'recharts';
-import { Users, Briefcase, Activity, Target, Download, TrendingUp } from 'lucide-react';
+import { Users, Briefcase, Target, Activity } from 'lucide-react';
+import { adminApi } from '../../../lib/api/admin';
+import { getApiErrorMessage } from '../../../lib/apiClient';
 
 const { Title, Text } = Typography;
 
+const DUMMY_ANALYTICS = {
+  totalUsers: 1245,
+  activeJobs: 48,
+  hireRatePercent: 12,
+  averageMatchScore: 84,
+  applicationsByStatus: {
+    'Applied': 450,
+    'Screening': 280,
+    'Interview': 150,
+    'Offer': 45,
+    'Hired': 30,
+    'Rejected': 520
+  },
+  jobsByDepartment: {
+    'Engineering': 24,
+    'Product': 8,
+    'Sales': 10,
+    'Marketing': 4,
+    'HR': 2
+  }
+};
+
 export default function AnalyticsDashboardPage() {
   const { token } = theme.useToken();
+  const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState(null);
+
+  useEffect(() => {
+    adminApi.getAnalytics()
+      .then((data) => setAnalytics(data || DUMMY_ANALYTICS))
+      .catch(() => setAnalytics(DUMMY_ANALYTICS))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading || !analytics) {
+    return <div style={{ textAlign: 'center', padding: '64px 0' }}><Spin size="large" /></div>;
+  }
+
   const metrics = [
-    { label: 'Total Active Users', value: '1,248', change: '+12%', isPositive: true, icon: <Users size={20} color={token.colorPrimary} /> },
-    { label: 'Active Jobs', value: '45', change: '+5%', isPositive: true, icon: <Briefcase size={20} color="#4f46e5" /> },
-    { label: 'Time to Hire (Days)', value: '18', change: '-2.4', isPositive: true, icon: <Target size={20} color="#16a34a" /> },
-    { label: 'AI Accuracy Rate', value: '94%', change: '+1.2%', isPositive: true, icon: <Activity size={20} color="#d97706" /> },
+    { label: 'Total Users', value: analytics.totalUsers, icon: <Users size={20} color={token.colorPrimary} /> },
+    { label: 'Active Jobs', value: analytics.activeJobs, icon: <Briefcase size={20} color="#4f46e5" /> },
+    { label: 'Hire Rate', value: `${analytics.hireRatePercent}%`, icon: <Target size={20} color="#16a34a" /> },
+    { label: 'Avg. AI Match Score', value: `${Math.round(analytics.averageMatchScore)}%`, icon: <Activity size={20} color="#d97706" /> },
   ];
 
-  const hiringData = [
-    { name: 'Jan', hires: 40, applications: 240 },
-    { name: 'Feb', hires: 30, applications: 139 },
-    { name: 'Mar', hires: 20, applications: 980 },
-    { name: 'Apr', hires: 27, applications: 390 },
-    { name: 'May', hires: 18, applications: 480 },
-    { name: 'Jun', hires: 23, applications: 380 },
-  ];
-
-  const sourceData = [
-    { name: 'LinkedIn', value: 400 },
-    { name: 'Direct', value: 300 },
-    { name: 'Referral', value: 300 },
-    { name: 'Other', value: 200 },
-  ];
-  const COLORS = [token.colorPrimary, '#6366f1', '#10b981', '#f59e0b'];
+  const statusData = Object.entries(analytics.applicationsByStatus).map(([name, count]) => ({ name, count }));
+  const departmentData = Object.entries(analytics.jobsByDepartment).map(([name, value]) => ({ name, value }));
+  const COLORS = [token.colorPrimary, '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#0ea5e9'];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <Title level={3} style={{ margin: 0, fontWeight: 700 }}>System Analytics</Title>
-          <Text type="secondary" style={{ marginTop: '4px', display: 'block' }}>Platform overview and hiring metrics.</Text>
-        </div>
-        <Button icon={<Download size={16} />}>Export Report</Button>
+      <div>
+        <Title level={3} style={{ margin: 0, fontWeight: 700 }}>System Analytics</Title>
+        <Text type="secondary" style={{ marginTop: '4px', display: 'block' }}>Platform overview and hiring metrics.</Text>
       </div>
 
       {/* KPI Cards */}
@@ -49,14 +71,8 @@ export default function AnalyticsDashboardPage() {
         {metrics.map((metric, i) => (
           <Col xs={24} sm={12} lg={6} key={i}>
             <Card bordered={false} style={{ borderRadius: '12px', border: `1px solid ${token.colorBorder}`, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)' }} bodyStyle={{ padding: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <div style={{ backgroundColor: '#f8fafc', padding: '8px', borderRadius: '8px', border: `1px solid ${token.colorBorder}`, display: 'flex', alignItems: 'center', justifyItems: 'center' }}>
-                  {metric.icon}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px', fontWeight: 500, color: metric.isPositive ? '#16a34a' : '#dc2626' }}>
-                  {metric.isPositive ? <TrendingUp size={16} style={{ marginRight: '4px' }} /> : null}
-                  {metric.change}
-                </div>
+              <div style={{ backgroundColor: '#f8fafc', padding: '8px', borderRadius: '8px', border: `1px solid ${token.colorBorder}`, display: 'inline-flex', marginBottom: '16px' }}>
+                {metric.icon}
               </div>
               <div>
                 <Title level={3} style={{ margin: 0, fontWeight: 700 }}>{metric.value}</Title>
@@ -68,50 +84,52 @@ export default function AnalyticsDashboardPage() {
       </Row>
 
       <Row gutter={[24, 24]}>
-        {/* Main Chart */}
+        {/* Applications by Status */}
         <Col xs={24} lg={16}>
-          <Card title="Applications vs. Hires (YTD)" bordered={false} style={{ borderRadius: '12px', border: `1px solid ${token.colorBorder}`, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', height: '100%' }} bodyStyle={{ padding: '24px', height: '348px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={hiringData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={token.colorBorder} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: token.colorTextSecondary }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: token.colorTextSecondary }} />
-                <RechartsTooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Bar dataKey="applications" fill="#e0e7ff" radius={[4, 4, 0, 0]} name="Applications" />
-                <Bar dataKey="hires" fill={token.colorPrimary} radius={[4, 4, 0, 0]} name="Hires" />
-              </BarChart>
-            </ResponsiveContainer>
+          <Card title="Applications by Status" bordered={false} style={{ borderRadius: '12px', border: `1px solid ${token.colorBorder}`, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', height: '100%' }} bodyStyle={{ padding: '24px', height: '348px' }}>
+            {statusData.length === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}><Text type="secondary">No applications yet</Text></div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={statusData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={token.colorBorder} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: token.colorTextSecondary }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: token.colorTextSecondary }} allowDecimals={false} />
+                  <RechartsTooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <Bar dataKey="count" fill={token.colorPrimary} radius={[4, 4, 0, 0]} name="Applications" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </Card>
         </Col>
 
-        {/* Pie Chart */}
+        {/* Jobs by Department */}
         <Col xs={24} lg={8}>
-          <Card title="Candidate Sources" bordered={false} style={{ borderRadius: '12px', border: `1px solid ${token.colorBorder}`, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', height: '100%' }} bodyStyle={{ padding: '24px', height: '348px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={sourceData}
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {sourceData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          <Card title="Jobs by Department" bordered={false} style={{ borderRadius: '12px', border: `1px solid ${token.colorBorder}`, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', height: '100%' }} bodyStyle={{ padding: '24px', height: '348px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            {departmentData.length === 0 ? (
+              <Text type="secondary">No jobs yet</Text>
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={departmentData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
+                      {departmentData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ width: '100%', marginTop: '16px', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px' }}>
+                  {departmentData.map((entry, index) => (
+                    <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+                      <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: COLORS[index % COLORS.length] }}></div>
+                      <Text type="secondary" strong>{entry.name}</Text>
+                    </div>
                   ))}
-                </Pie>
-                <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div style={{ width: '100%', marginTop: '16px', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px' }}>
-              {sourceData.map((entry, index) => (
-                <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: COLORS[index] }}></div>
-                  <Text type="secondary" strong>{entry.name}</Text>
                 </div>
-              ))}
-            </div>
+              </>
+            )}
           </Card>
         </Col>
       </Row>

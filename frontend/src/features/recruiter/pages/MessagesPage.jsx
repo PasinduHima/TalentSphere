@@ -1,52 +1,48 @@
 import React, { useState } from 'react';
 import { Input, Button, Badge, Layout, Typography, theme, Avatar } from 'antd';
-import { Search, Send, MoreVertical, Phone, Video, Paperclip, Smile } from 'lucide-react';
+import { Search, Send, MoreVertical, Phone, Video } from 'lucide-react';
 
 const { Sider, Content } = Layout;
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 const CONTACTS = [
-  { id: 1, name: 'David Chen', role: 'Technical Recruiter', company: 'Acme Corp', avatar: 'https://i.pravatar.cc/150?u=david', unread: 2, lastMessage: 'Great, I will send over the calendar invite shortly.', time: '10:42 AM', online: true },
-  { id: 2, name: 'Elena Rostova', role: 'Hiring Manager', company: 'FinTrust', avatar: 'https://i.pravatar.cc/150?u=elena', unread: 0, lastMessage: 'Thank you for your time today. We were really impressed.', time: 'Yesterday', online: false },
-  { id: 3, name: 'Marcus Johnson', role: 'Senior Recruiter', company: 'CloudNova', avatar: 'https://i.pravatar.cc/150?u=marcus', unread: 1, lastMessage: 'We have an exciting DevOps position that might interest you.', time: 'Yesterday', online: true },
-  { id: 4, name: 'Priya Sharma', role: 'HR Director', company: 'BrightPath', avatar: 'https://i.pravatar.cc/150?u=priya-s', unread: 0, lastMessage: 'Your offer letter has been sent to your email.', time: 'Mon', online: false },
-  { id: 5, name: 'System', role: 'TalentSphere AI', company: '', avatar: null, unread: 0, lastMessage: 'Your application for Product Manager has been updated.', time: 'Sun', online: true },
+  { id: 1, name: 'Sarah Mitchell', role: 'Senior Frontend Engineer', company: 'Applied — Acme Corp', avatar: 'https://i.pravatar.cc/150?u=sarah-m', unread: 3, lastMessage: 'Thank you! I have attached my updated portfolio as requested.', time: '11:15 AM' },
+  { id: 2, name: 'James Rodriguez', role: 'Backend Developer', company: 'Applied — FinVault', avatar: 'https://i.pravatar.cc/150?u=james-r', unread: 0, lastMessage: 'Sounds great, Tuesday at 2 PM works for me.', time: '9:30 AM' },
+  { id: 3, name: 'Emily Chen', role: 'Product Designer', company: 'Applied — BrightPath', avatar: 'https://i.pravatar.cc/150?u=emily-c', unread: 1, lastMessage: 'Could you send me the Figma link for the design challenge?', time: 'Yesterday' },
+  { id: 4, name: 'Michael Okafor', role: 'DevOps Engineer', company: 'Applied — CloudNova', avatar: 'https://i.pravatar.cc/150?u=michael-o', unread: 0, lastMessage: 'I have 5 years of experience with Kubernetes.', time: 'Mon' },
+  { id: 5, name: 'System', role: 'TalentSphere AI', company: '', avatar: null, unread: 0, lastMessage: 'New application received for Product Designer role.', time: 'Sun' },
 ];
 
 const CHAT_HISTORIES = {
   1: [
-    { id: 1, sender: 'David Chen', text: 'Hi Sarah, thanks for applying to the Senior Frontend Engineer role at Acme Corp. Your background looks great!', time: '10:30 AM', isMe: false },
-    { id: 2, sender: 'Sarah', text: 'Hi David, thank you! I am very excited about the opportunity. The tech stack aligns perfectly with my experience.', time: '10:35 AM', isMe: true },
-    { id: 3, sender: 'David Chen', text: 'That is great to hear! Are you available for a quick 15-minute chat tomorrow anytime between 1-3 PM PST?', time: '10:38 AM', isMe: false },
-    { id: 4, sender: 'Sarah', text: 'Yes, 2:00 PM PST works perfectly for me. Should I prepare anything specific?', time: '10:40 AM', isMe: true },
-    { id: 5, sender: 'David Chen', text: 'Great, I will send over the calendar invite shortly.', time: '10:42 AM', isMe: false },
+    { id: 1, sender: 'You', text: 'Hi Sarah, thanks for applying to the Senior Frontend Engineer role. Your portfolio is impressive!', time: '10:45 AM', isMe: true },
+    { id: 2, sender: 'Sarah Mitchell', text: 'Thank you so much! I have been following your company for a while and love the product direction.', time: '10:52 AM', isMe: false },
+    { id: 3, sender: 'You', text: 'Great to hear! Could you share an updated portfolio with your most recent React work? We would like to review it before the technical interview.', time: '11:00 AM', isMe: true },
+    { id: 4, sender: 'Sarah Mitchell', text: 'Of course! Give me a moment to compile the latest projects.', time: '11:08 AM', isMe: false },
+    { id: 5, sender: 'Sarah Mitchell', text: 'Thank you! I have attached my updated portfolio as requested.', time: '11:15 AM', isMe: false },
   ],
   2: [
-    { id: 1, sender: 'Elena Rostova', text: 'Hello! I wanted to personally reach out about your application for the Full Stack Developer role.', time: '3:00 PM', isMe: false },
-    { id: 2, sender: 'Sarah', text: 'Hi Elena! Thank you so much for reaching out. I would love to learn more about the role.', time: '3:10 PM', isMe: true },
-    { id: 3, sender: 'Elena Rostova', text: 'We were really impressed with your portfolio. Would you be open to a technical interview next week?', time: '3:15 PM', isMe: false },
-    { id: 4, sender: 'Sarah', text: 'Absolutely! I am available Monday through Wednesday.', time: '3:20 PM', isMe: true },
-    { id: 5, sender: 'Elena Rostova', text: 'Thank you for your time today. We were really impressed.', time: '4:00 PM', isMe: false },
+    { id: 1, sender: 'You', text: 'Hi James, we would like to schedule a technical interview for the Backend Developer position. Are you available next week?', time: '9:00 AM', isMe: true },
+    { id: 2, sender: 'James Rodriguez', text: 'Hi! Yes, I am available Tuesday through Thursday. What times work for you?', time: '9:15 AM', isMe: false },
+    { id: 3, sender: 'You', text: 'How about Tuesday at 2 PM PST? It would be a 60-minute session with our lead architect.', time: '9:22 AM', isMe: true },
+    { id: 4, sender: 'James Rodriguez', text: 'Sounds great, Tuesday at 2 PM works for me.', time: '9:30 AM', isMe: false },
   ],
   3: [
-    { id: 1, sender: 'Marcus Johnson', text: 'Hi Sarah! I came across your profile and was really impressed by your cloud infrastructure experience.', time: '11:00 AM', isMe: false },
-    { id: 2, sender: 'Sarah', text: 'Thanks Marcus! I have been focused on cloud-native architectures for the past 3 years.', time: '11:15 AM', isMe: true },
-    { id: 3, sender: 'Marcus Johnson', text: 'We have an exciting DevOps position that might interest you.', time: '11:20 AM', isMe: false },
+    { id: 1, sender: 'Emily Chen', text: 'Hi, I just submitted my application for the Product Designer role. I am really excited about this opportunity!', time: '3:00 PM', isMe: false },
+    { id: 2, sender: 'You', text: 'Welcome Emily! We have a design challenge as part of our process. I will send you the details shortly.', time: '3:15 PM', isMe: true },
+    { id: 3, sender: 'Emily Chen', text: 'Could you send me the Figma link for the design challenge?', time: '3:30 PM', isMe: false },
   ],
   4: [
-    { id: 1, sender: 'Priya Sharma', text: 'Congratulations Sarah! The team loved your interviews and we would like to extend an offer.', time: '9:00 AM', isMe: false },
-    { id: 2, sender: 'Sarah', text: 'That is wonderful news! Thank you so much!', time: '9:15 AM', isMe: true },
-    { id: 3, sender: 'Priya Sharma', text: 'Your offer letter has been sent to your email.', time: '9:30 AM', isMe: false },
+    { id: 1, sender: 'You', text: 'Hi Michael, your background in DevOps looks strong. Can you tell me more about your Kubernetes experience?', time: '2:00 PM', isMe: true },
+    { id: 2, sender: 'Michael Okafor', text: 'I have 5 years of experience with Kubernetes.', time: '2:20 PM', isMe: false },
   ],
   5: [
-    { id: 1, sender: 'System', text: '🎉 Congratulations! Your profile completeness reached 78%. Keep adding skills to improve your match scores.', time: '8:00 AM', isMe: false },
-    { id: 2, sender: 'System', text: '📋 Your application for Product Manager at DesignForge has moved to the "Screening" stage.', time: '12:00 PM', isMe: false },
-    { id: 3, sender: 'System', text: '🔔 New job recommendation: "Frontend Architect" at FinVault (92% match). Check it out!', time: '2:00 PM', isMe: false },
+    { id: 1, sender: 'System', text: 'New application received for Product Designer role.', time: '12:00 PM', isMe: false },
   ],
 };
 
-export default function MessagesPage() {
+export default function RecruiterMessagesPage() {
   const [activeChat, setActiveChat] = useState(1);
   const [messageText, setMessageText] = useState('');
   const { token } = theme.useToken();
@@ -68,9 +64,9 @@ export default function MessagesPage() {
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ padding: '16px', borderBottom: `1px solid ${token.colorBorder}` }}>
             <Text strong style={{ fontSize: '16px', display: 'block', marginBottom: '12px' }}>Messages</Text>
-            <Input 
-              prefix={<Search size={16} color={token.colorTextSecondary} />} 
-              placeholder="Search messages..." 
+            <Input
+              prefix={<Search size={16} color={token.colorTextSecondary} />}
+              placeholder="Search conversations..."
               style={{ backgroundColor: '#f8fafc', border: 'none', borderRadius: '8px' }}
               size="large"
             />
@@ -79,7 +75,7 @@ export default function MessagesPage() {
             {CONTACTS.map(contact => {
               const isActive = activeChat === contact.id;
               return (
-                <div 
+                <div
                   key={contact.id}
                   onClick={() => setActiveChat(contact.id)}
                   style={{
@@ -90,10 +86,10 @@ export default function MessagesPage() {
                     transition: 'background-color 0.2s',
                     display: 'flex',
                     alignItems: 'flex-start',
-                    gap: '12px'
+                    gap: '12px',
                   }}
                 >
-                  <div style={{ position: 'relative' }}>
+                  <div>
                     <Badge count={contact.unread} offset={[-4, 4]}>
                       {contact.avatar ? (
                         <Avatar src={contact.avatar} size={40} />
@@ -101,9 +97,6 @@ export default function MessagesPage() {
                         <Avatar style={{ backgroundColor: '#e0e7ff', color: token.colorPrimary, fontWeight: 'bold' }} size={40}>TS</Avatar>
                       )}
                     </Badge>
-                    {contact.online && (
-                      <div style={{ position: 'absolute', bottom: 0, right: 0, width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#22c55e', border: '2px solid #fff' }} />
-                    )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
@@ -134,10 +127,7 @@ export default function MessagesPage() {
             )}
             <div>
               <Text strong style={{ display: 'block', fontSize: '14px' }}>{activeContact.name}</Text>
-              <Text type="secondary" style={{ fontSize: '12px' }}>
-                {activeContact.online ? <span style={{ color: '#22c55e' }}>● Online</span> : <span>● Offline</span>}
-                {activeContact.company ? ` · ${activeContact.role} at ${activeContact.company}` : ` · ${activeContact.role}`}
-              </Text>
+              <Text type="secondary" style={{ fontSize: '12px' }}>{activeContact.role}{activeContact.company ? ` · ${activeContact.company}` : ''}</Text>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -154,7 +144,7 @@ export default function MessagesPage() {
               Today, July 22
             </span>
           </div>
-          
+
           {chatHistory.map((msg) => (
             <div key={msg.id} style={{ display: 'flex', maxWidth: '80%', alignSelf: msg.isMe ? 'flex-end' : 'flex-start' }}>
               {!msg.isMe && activeContact.avatar && (
@@ -165,14 +155,13 @@ export default function MessagesPage() {
               )}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: msg.isMe ? 'flex-end' : 'flex-start' }}>
                 <div style={{
-                  padding: '10px 16px',
+                  padding: '8px 16px',
                   backgroundColor: msg.isMe ? token.colorPrimary : '#fff',
                   color: msg.isMe ? '#fff' : token.colorText,
                   border: msg.isMe ? 'none' : `1px solid ${token.colorBorder}`,
                   borderRadius: '16px',
                   borderBottomRightRadius: msg.isMe ? '4px' : '16px',
                   borderBottomLeftRadius: msg.isMe ? '16px' : '4px',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                 }}>
                   <span style={{ fontSize: '14px', lineHeight: 1.5 }}>{msg.text}</span>
                 </div>
@@ -185,7 +174,6 @@ export default function MessagesPage() {
         {/* Message Input */}
         <div style={{ padding: '16px', backgroundColor: '#fff', borderTop: `1px solid ${token.colorBorder}`, flexShrink: 0 }}>
           <form onSubmit={handleSendMessage} style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
-            <Button type="text" icon={<Paperclip size={18} color={token.colorTextSecondary} />} style={{ flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
               <TextArea
                 value={messageText}
@@ -201,11 +189,10 @@ export default function MessagesPage() {
                 }}
               />
             </div>
-            <Button type="text" icon={<Smile size={18} color={token.colorTextSecondary} />} style={{ flexShrink: 0 }} />
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              style={{ height: '32px', width: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+            <Button
+              type="primary"
+              htmlType="submit"
+              style={{ height: '32px', width: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               disabled={!messageText.trim()}
               icon={<Send size={16} />}
             />

@@ -1,6 +1,7 @@
 /* ============================================
-   TalentSphere AI — Base Styles
+   TalentSphere AI — Base Styles & Aesthetics
    ============================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap');
 
 * {
   margin: 0;
@@ -16,15 +17,21 @@ html {
 
 body {
   font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  background-color: #f8fafc;
+  background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+  background-attachment: fixed;
   color: #0f172a;
   line-height: 1.6;
 }
 
+h1, h2, h3, h4, h5, h6, .ant-typography {
+  font-family: 'Outfit', 'Inter', sans-serif !important;
+  letter-spacing: -0.02em;
+}
+
 /* ---- Scrollbar ---- */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -39,6 +46,106 @@ body {
 
 /* ---- Selection ---- */
 ::selection {
-  background-color: #c7d2fe;
-  color: #0f1740;
+  background-color: #818cf8;
+  color: #fff;
+}
+
+/* ---- Utilities ---- */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.hover-lift {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -10px rgba(99, 102, 241, 0.15);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ---- Ant Design Overrides ---- */
+.ant-layout {
+  background: transparent !important;
+}
+
+.ant-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ant-card:hover {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01) !important;
+}
+
+/* ---- Button Styles ---- */
+.ant-btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Primary Button — gradient bg, always white text */
+.ant-btn-primary {
+  background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%) !important;
+  border: none !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2), 0 2px 4px -2px rgba(79, 70, 229, 0.1) !important;
+}
+.ant-btn-primary:hover,
+.ant-btn-primary:focus {
+  background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3), 0 4px 6px -4px rgba(79, 70, 229, 0.1) !important;
+}
+.ant-btn-primary:active {
+  background: linear-gradient(135deg, #4338ca 0%, #312e81 100%) !important;
+  color: #ffffff !important;
+  transform: translateY(0);
+  box-shadow: 0 2px 4px -1px rgba(79, 70, 229, 0.2) !important;
+}
+
+/* Default Button — outlined style, readable text in all states */
+.ant-btn-default:hover,
+.ant-btn-default:focus {
+  color: #4f46e5 !important;
+  border-color: #4f46e5 !important;
+}
+.ant-btn-default:active {
+  color: #3730a3 !important;
+  border-color: #3730a3 !important;
+}
+
+/* Text / Link buttons */
+.ant-btn-text:hover,
+.ant-btn-text:focus {
+  color: #4f46e5 !important;
+  background: rgba(79, 70, 229, 0.06) !important;
+}
+.ant-btn-text:active {
+  color: #3730a3 !important;
+  background: rgba(79, 70, 229, 0.1) !important;
+}
+.ant-btn-link:hover,
+.ant-btn-link:focus {
+  color: #6366f1 !important;
+}
+.ant-btn-link:active {
+  color: #3730a3 !important;
+}
+
+.ant-menu {
+  background: transparent !important;
+}
+.ant-menu-item-selected {
+  background: linear-gradient(90deg, #e0e7ff 0%, transparent 100%) !important;
+  border-right: 3px solid #4f46e5 !important;
+  color: #4f46e5 !important;
+  font-weight: 600;
 }

@@ -82,6 +82,7 @@ export const SIDEBAR_NAV = {
     { label: 'Shortlisted Candidates', path: '/hiring-manager/shortlisted', icon: 'UserCheck' },
     { label: 'Interview Feedback', path: '/hiring-manager/feedback', icon: 'MessageCircle' },
     { label: 'Hiring Decisions', path: '/hiring-manager/decisions', icon: 'CheckSquare' },
+    { label: 'AI Question Generator', path: '/hiring-manager/ai-questions', icon: 'BrainCircuit' },
   ],
   [ROLES.ADMIN]: [
     { label: 'Dashboard', path: '/admin/dashboard', icon: 'LayoutDashboard' },
