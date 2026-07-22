@@ -1,54 +1,57 @@
-import React from 'react';
-import { Card, Button, Tag, Table, Progress, Typography, Row, Col, theme } from 'antd';
-import { Activity, Server, Database, Shield, RefreshCw } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Card, Button, Tag, Table, Typography, Row, Col, theme, message } from 'antd';
+import { Activity, Server, Database, RefreshCw } from 'lucide-react';
+import { adminApi } from '../../../lib/api/admin';
+import { getApiErrorMessage } from '../../../lib/apiClient';
 
 const { Title, Text } = Typography;
 
 export default function SystemMonitoringPage() {
   const { token } = theme.useToken();
-  const services = [
-    { name: 'Core API Server', status: 'Healthy', uptime: '99.99%', latency: '45ms', load: 32 },
-    { name: 'AI Prediction Engine', status: 'Healthy', uptime: '99.95%', latency: '120ms', load: 65 },
-    { name: 'Database Cluster', status: 'Healthy', uptime: '100%', latency: '12ms', load: 45 },
-    { name: 'Email Notification Service', status: 'Warning', uptime: '98.5%', latency: '250ms', load: 89 },
+  const [loading, setLoading] = useState(true);
+  const [services, setServices] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditTotal, setAuditTotal] = useState(0);
+  const [userTotal, setUserTotal] = useState(0);
+
+  const load = () => {
+    setLoading(true);
+    Promise.all([
+      adminApi.getSystemHealth(),
+      adminApi.getAuditLogs({ page: 1, pageSize: 10 }),
+      adminApi.getUsers({ page: 1, pageSize: 1 }),
+    ])
+      .then(([health, logs, users]) => {
+        setServices(health);
+        setAuditLogs(logs.items);
+        setAuditTotal(logs.totalCount);
+        setUserTotal(users.totalCount);
+      })
+      .catch((err) => message.error(getApiErrorMessage(err, 'Failed to load system status.')))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const allOperational = services.every((s) => s.status === 'Operational');
+
+  const serviceColumns = [
+    { title: 'Service Name', dataIndex: 'serviceName', key: 'serviceName', render: (text) => <Text strong>{text}</Text> },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => <Tag color={status === 'Operational' ? 'success' : status === 'Degraded' ? 'warning' : 'error'} style={{ margin: 0 }}>{status}</Tag>
+    },
+    { title: 'Details', dataIndex: 'details', key: 'details', render: (text) => <Text type="secondary">{text || '-'}</Text> },
+    { title: 'Checked At', dataIndex: 'checkedAt', key: 'checkedAt', render: (date) => new Date(date).toLocaleTimeString() },
   ];
 
-  const columns = [
-    { title: 'Service Name', dataIndex: 'name', key: 'name', render: (text) => <Text strong>{text}</Text> },
-    { 
-      title: 'Status', 
-      dataIndex: 'status', 
-      key: 'status',
-      render: (status) => (
-        <Tag color={status === 'Healthy' ? 'success' : 'warning'} style={{ margin: 0 }}>
-          {status}
-        </Tag>
-      )
-    },
-    { title: 'Uptime', dataIndex: 'uptime', key: 'uptime', render: (text) => <Text strong>{text}</Text> },
-    { title: 'Latency', dataIndex: 'latency', key: 'latency' },
-    { 
-      title: 'CPU Load', 
-      dataIndex: 'load', 
-      key: 'load',
-      render: (load) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', maxWidth: '100px' }}>
-          <Progress percent={load} showInfo={false} size="small" status={load > 80 ? "exception" : "active"} strokeColor={load > 80 ? undefined : token.colorPrimary} />
-          <span style={{ fontSize: '12px' }}>{load}%</span>
-        </div>
-      )
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      align: 'right',
-      render: () => (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-          <Button type="text" size="small">Logs</Button>
-          <Button type="text" size="small">Restart</Button>
-        </div>
-      )
-    }
+  const auditColumns = [
+    { title: 'Action', dataIndex: 'action', key: 'action', render: (text) => <Tag style={{ margin: 0 }}>{text}</Tag> },
+    { title: 'Entity', dataIndex: 'entityName', key: 'entityName' },
+    { title: 'User', dataIndex: 'userEmail', key: 'userEmail', render: (email) => email || <Text type="secondary">system</Text> },
+    { title: 'Timestamp', dataIndex: 'timestamp', key: 'timestamp', render: (date) => new Date(date).toLocaleString() },
   ];
 
   return (
@@ -59,9 +62,9 @@ export default function SystemMonitoringPage() {
             <Activity size={24} color={token.colorPrimary} />
             System Monitoring
           </Title>
-          <Text type="secondary" style={{ marginTop: '4px', display: 'block' }}>Real-time health and performance of the TalentSphere platform.</Text>
+          <Text type="secondary" style={{ marginTop: '4px', display: 'block' }}>Real-time health and activity on the TalentSphere platform.</Text>
         </div>
-        <Button icon={<RefreshCw size={16} />}>Refresh Stats</Button>
+        <Button icon={<RefreshCw size={16} />} onClick={load} loading={loading}>Refresh</Button>
       </div>
 
       <Row gutter={[24, 24]}>
@@ -71,8 +74,8 @@ export default function SystemMonitoringPage() {
               <Server size={20} />
               <Text strong style={{ color: '#e0e7ff' }}>Global Status</Text>
             </div>
-            <Title level={2} style={{ margin: '0 0 8px 0', color: '#fff' }}>Operational</Title>
-            <Text style={{ color: '#c7d2fe', fontSize: '14px' }}>All primary systems are functioning normally.</Text>
+            <Title level={2} style={{ margin: '0 0 8px 0', color: '#fff' }}>{allOperational ? 'Operational' : 'Degraded'}</Title>
+            <Text style={{ color: '#c7d2fe', fontSize: '14px' }}>{services.length} services monitored.</Text>
           </Card>
         </Col>
 
@@ -80,27 +83,31 @@ export default function SystemMonitoringPage() {
           <Card bordered={false} style={{ borderRadius: '12px', border: `1px solid ${token.colorBorder}`, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', height: '100%' }} bodyStyle={{ padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: token.colorTextSecondary }}>
               <Database size={20} color="#6366f1" />
-              <Text strong type="secondary">Total Data Processed</Text>
+              <Text strong type="secondary">Audit Events Logged</Text>
             </div>
-            <Title level={2} style={{ margin: '0 0 8px 0' }}>45.2 TB</Title>
-            <Text strong style={{ color: '#16a34a', fontSize: '14px' }}>+2.4 TB this week</Text>
+            <Title level={2} style={{ margin: '0 0 8px 0' }}>{auditTotal}</Title>
+            <Text type="secondary" style={{ fontSize: '14px' }}>Actions tracked across the platform</Text>
           </Card>
         </Col>
 
         <Col xs={24} md={8}>
           <Card bordered={false} style={{ borderRadius: '12px', border: `1px solid ${token.colorBorder}`, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', height: '100%' }} bodyStyle={{ padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: token.colorTextSecondary }}>
-              <Shield size={20} color="#10b981" />
-              <Text strong type="secondary">Security Alerts</Text>
+              <Activity size={20} color="#10b981" />
+              <Text strong type="secondary">Registered Users</Text>
             </div>
-            <Title level={2} style={{ margin: '0 0 8px 0' }}>0</Title>
-            <Text type="secondary" style={{ fontSize: '14px' }}>No active security threats detected.</Text>
+            <Title level={2} style={{ margin: '0 0 8px 0' }}>{userTotal}</Title>
+            <Text type="secondary" style={{ fontSize: '14px' }}>Across all roles</Text>
           </Card>
         </Col>
       </Row>
 
-      <Card title="Microservices Health" bordered={false} style={{ borderRadius: '12px', border: `1px solid ${token.colorBorder}`, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', overflow: 'hidden' }} bodyStyle={{ padding: 0 }}>
-        <Table columns={columns} dataSource={services} pagination={false} rowKey="name" style={{ margin: 0 }} />
+      <Card title="Service Health" bordered={false} style={{ borderRadius: '12px', border: `1px solid ${token.colorBorder}`, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', overflow: 'hidden' }} bodyStyle={{ padding: 0 }}>
+        <Table columns={serviceColumns} dataSource={services} pagination={false} rowKey="serviceName" loading={loading} style={{ margin: 0 }} />
+      </Card>
+
+      <Card title="Recent Audit Activity" bordered={false} style={{ borderRadius: '12px', border: `1px solid ${token.colorBorder}`, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', overflow: 'hidden' }} bodyStyle={{ padding: 0 }}>
+        <Table columns={auditColumns} dataSource={auditLogs} pagination={false} rowKey="id" loading={loading} style={{ margin: 0 }} locale={{ emptyText: 'No activity logged yet' }} />
       </Card>
     </div>
   );

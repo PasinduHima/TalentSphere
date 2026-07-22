@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Card, Button, Input, Tag, Select, Typography, Row, Col, theme } from 'antd';
-import { Wand2, Copy, Check, Download, BrainCircuit } from 'lucide-react';
+import { Card, Button, Input, Tag, Select, Typography, Row, Col, theme, message } from 'antd';
+import { Wand2, Copy, Check, BrainCircuit } from 'lucide-react';
+import { hiringManagerApi } from '../../../lib/api/hiringManager';
+import { getApiErrorMessage } from '../../../lib/apiClient';
 
 const { Title, Text } = Typography;
 
@@ -13,29 +15,27 @@ export default function AIQuestionGeneratorPage() {
   const [copiedIndex, setCopiedIndex] = useState(null);
   const { token } = theme.useToken();
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
+    if (!role.trim()) {
+      message.warning('Enter a target role first.');
+      return;
+    }
     setIsGenerating(true);
-    // Simulate AI generation
-    setTimeout(() => {
-      setGeneratedQuestions([
-        {
-          question: "Can you walk me through how you would architect the state management for a highly interactive, real-time collaborative application (like Google Docs) using React?",
-          rationale: "Tests advanced understanding of React rendering, state synchronization, and performance optimization.",
-          goodAnswer: "Should discuss optimistic UI updates, conflict resolution strategies (like CRDTs or operational transformation), and choosing the right state management tool (e.g. Zustand, Redux, or context) to prevent unnecessary re-renders."
-        },
-        {
-          question: "Explain the concept of Micro-frontends. When would you choose to implement them, and what are the main architectural challenges they introduce?",
-          rationale: "Assesses enterprise-level architectural thinking and the trade-offs of distributed UI development.",
-          goodAnswer: "Should mention independent deployability and team autonomy, balanced against challenges like shared dependencies, routing complexity, and consistent design systems."
-        },
-        {
-          question: "How do you approach web performance optimization for a React application that is experiencing slow time-to-interactive (TTI) and high layout shifts?",
-          rationale: "Evaluates practical knowledge of Core Web Vitals and React-specific optimization techniques.",
-          goodAnswer: "Should discuss code splitting (React.lazy), memoization (useMemo/useCallback), deferred rendering (useTransition/useDeferredValue), and fixing CLS by explicitly sizing images/dynamic content."
-        }
-      ]);
+    try {
+      // Backend calls Google's Gemini API (gemini-flash-latest) with the role,
+      // focus area, and difficulty; degrades to a template-based generator if
+      // no API key is configured or the call fails, so this always resolves.
+      const questions = await hiringManagerApi.generateInterviewQuestions({
+        roleTitle: role,
+        focusArea,
+        difficultyLevel: difficulty,
+      });
+      setGeneratedQuestions(questions);
+    } catch (err) {
+      message.error(getApiErrorMessage(err, 'Failed to generate interview questions.'));
+    } finally {
       setIsGenerating(false);
-    }, 2000);
+    }
   };
 
   const handleCopy = (text, index) => {
@@ -164,7 +164,6 @@ export default function AIQuestionGeneratorPage() {
                     <Tag style={{ margin: 0 }}>{difficulty}</Tag>
                   </div>
                 </div>
-                <Button size="small" icon={<Download size={14} />}>Export PDF</Button>
               </div>
 
               {generatedQuestions.map((q, index) => (
@@ -191,7 +190,7 @@ export default function AIQuestionGeneratorPage() {
                     </div>
                     <div style={{ backgroundColor: '#f0fdf4', borderRadius: '8px', padding: '12px', fontSize: '14px', border: '1px solid #dcfce7' }}>
                       <Text strong style={{ color: '#166534', display: 'block', marginBottom: '4px' }}>What to look for:</Text>
-                      <Text style={{ color: '#15803d' }}>{q.goodAnswer}</Text>
+                      <Text style={{ color: '#15803d' }}>{q.whatToLookFor}</Text>
                     </div>
                   </div>
                 </Card>

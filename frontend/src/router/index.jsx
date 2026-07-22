@@ -17,16 +17,21 @@ import JobSearchPage from '../features/candidate/pages/JobSearchPage';
 import ApplicationTrackingPage from '../features/candidate/pages/ApplicationTrackingPage';
 import ProfilePage from '../features/candidate/pages/ProfilePage';
 import MessagesPage from '../features/candidate/pages/MessagesPage';
+import { ApplicationStatusPage } from '../features/candidate/pages/ApplicationStatusPage';
 
 // Recruiter Pages
+import RecruiterDashboardPage from '../features/recruiter/pages/DashboardPage';
 import JobPostingsPage from '../features/recruiter/pages/JobPostingsPage';
 import CreateJobPage from '../features/recruiter/pages/CreateJobPage';
 import CandidateSearchPage from '../features/recruiter/pages/CandidateSearchPage';
 import ApplicationReviewPage from '../features/recruiter/pages/ApplicationReviewPage';
 import InterviewSchedulingPage from '../features/recruiter/pages/InterviewSchedulingPage';
+import RecruiterMessagesPage from '../features/recruiter/pages/MessagesPage';
+import RecruiterSettingsPage from '../features/recruiter/pages/SettingsPage';
 
 // Hiring Manager Pages
 import HMDashboardPage from '../features/manager/pages/DashboardPage';
+import ShortlistedCandidatesPage from '../features/manager/pages/ShortlistedCandidatesPage';
 import CandidateReviewPage from '../features/manager/pages/CandidateReviewPage';
 import HiringDecisionsPage from '../features/manager/pages/HiringDecisionsPage';
 import AIQuestionGeneratorPage from '../features/manager/pages/AIQuestionGeneratorPage';
@@ -34,18 +39,10 @@ import AIQuestionGeneratorPage from '../features/manager/pages/AIQuestionGenerat
 // Admin Pages
 import AnalyticsDashboardPage from '../features/admin/pages/AnalyticsDashboardPage';
 import UserManagementPage from '../features/admin/pages/UserManagementPage';
+import RolesPermissionsPage from '../features/admin/pages/RolesPermissionsPage';
 import DepartmentManagementPage from '../features/admin/pages/DepartmentManagementPage';
 import SystemMonitoringPage from '../features/admin/pages/SystemMonitoringPage';
-
-// Mock Pages for routing setup
-const Placeholder = ({ title }) => (
-  <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', padding: '32px' }}>
-    <div style={{ textAlign: 'center' }}>
-      <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>{title}</h1>
-      <p style={{ marginTop: '8px', color: '#64748b' }}>This page is under construction.</p>
-    </div>
-  </div>
-);
+import AdminSettingsPage from '../features/admin/pages/AdminSettingsPage';
 
 export const router = createBrowserRouter([
   {
@@ -80,6 +77,7 @@ export const router = createBrowserRouter([
       { path: 'dashboard', element: <CandidateDashboardPage /> },
       { path: 'jobs', element: <JobSearchPage /> },
       { path: 'applications', element: <ApplicationTrackingPage /> },
+      { path: 'application-status/:id', element: <ApplicationStatusPage /> },
       { path: 'messages', element: <MessagesPage /> },
       { path: 'profile', element: <ProfilePage /> },
     ],
@@ -96,12 +94,15 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { path: '', element: <Navigate to="jobs" replace /> },
+      { path: '', element: <Navigate to="dashboard" replace /> },
+      { path: 'dashboard', element: <RecruiterDashboardPage /> },
       { path: 'jobs', element: <JobPostingsPage /> },
       { path: 'jobs/new', element: <CreateJobPage /> },
       { path: 'candidates', element: <CandidateSearchPage /> },
       { path: 'applications/:id', element: <ApplicationReviewPage /> },
       { path: 'interviews', element: <InterviewSchedulingPage /> },
+      { path: 'messages', element: <RecruiterMessagesPage /> },
+      { path: 'settings', element: <RecruiterSettingsPage /> },
     ],
   },
 
@@ -118,7 +119,7 @@ export const router = createBrowserRouter([
     children: [
       { path: '', element: <Navigate to="dashboard" replace /> },
       { path: 'dashboard', element: <HMDashboardPage /> },
-      { path: 'shortlisted', element: <Placeholder title="Shortlisted Candidates" /> },
+      { path: 'shortlisted', element: <ShortlistedCandidatesPage /> },
       { path: 'feedback', element: <CandidateReviewPage /> },
       { path: 'decisions', element: <HiringDecisionsPage /> },
       { path: 'ai-questions', element: <AIQuestionGeneratorPage /> },
@@ -139,10 +140,10 @@ export const router = createBrowserRouter([
       { path: '', element: <Navigate to="dashboard" replace /> },
       { path: 'dashboard', element: <AnalyticsDashboardPage /> },
       { path: 'users', element: <UserManagementPage /> },
-      { path: 'roles', element: <Placeholder title="Roles & Permissions" /> },
+      { path: 'roles', element: <RolesPermissionsPage /> },
       { path: 'departments', element: <DepartmentManagementPage /> },
       { path: 'monitoring', element: <SystemMonitoringPage /> },
-      { path: 'settings', element: <Placeholder title="Settings" /> },
+      { path: 'settings', element: <AdminSettingsPage /> },
     ],
   },
   
