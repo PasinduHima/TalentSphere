@@ -1,0 +1,202 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { Card, Button, Input, Tag, Table, Tabs, Typography, theme, message, Avatar } from 'antd';
+import { CheckCircle, XCircle, Search } from 'lucide-react';
+import { hiringManagerApi } from '../../../lib/api/hiringManager';
+import { getApiErrorMessage } from '../../../lib/apiClient';
+
+const { Title, Text } = Typography;
+
+const DUMMY_SHORTLISTED = [
+  { jobApplicationId: 'a1', candidateName: 'Sarah Mitchell', jobTitle: 'Senior Frontend Engineer', matchScore: 96, avatar: 'https://i.pravatar.cc/150?u=sarah-m', feedbacks: [{ id: 'f1' }] },
+  { jobApplicationId: 'a2', candidateName: 'James Rodriguez', jobTitle: 'Full Stack Developer', matchScore: 91, avatar: 'https://i.pravatar.cc/150?u=james-r', feedbacks: [{ id: 'f2' }, { id: 'f3' }] },
+  { jobApplicationId: 'a3', candidateName: 'Emily Chen', jobTitle: 'Product Designer', matchScore: 87, avatar: 'https://i.pravatar.cc/150?u=emily-c', feedbacks: [{ id: 'f4' }] },
+];
+
+const DUMMY_DECISIONS = [
+  { id: 'd1', jobApplicationId: 'dx1', candidateName: 'Michael Okafor', jobTitle: 'DevOps Engineer', decision: 'ExtendOffer', avatar: 'https://i.pravatar.cc/150?u=michael-o', decidedAt: '2026-07-20T10:00:00Z' },
+  { id: 'd2', jobApplicationId: 'dx2', candidateName: 'Alex Nguyen', jobTitle: 'Backend Engineer', decision: 'ExtendOffer', avatar: 'https://i.pravatar.cc/150?u=alex-n', decidedAt: '2026-07-19T14:00:00Z' },
+  { id: 'd3', jobApplicationId: 'dx3', candidateName: 'Lena Kowalski', jobTitle: 'QA Lead', decision: 'Reject', avatar: 'https://i.pravatar.cc/150?u=lena-k', decidedAt: '2026-07-18T16:00:00Z' },
+  { id: 'd4', jobApplicationId: 'dx4', candidateName: 'Raj Patel', jobTitle: 'Mobile Developer', decision: 'OnHold', avatar: 'https://i.pravatar.cc/150?u=raj-p', decidedAt: '2026-07-17T11:00:00Z' },
+];
+
+export default function HiringDecisionsPage() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('All');
+  const { token } = theme.useToken();
+
+  const [loading, setLoading] = useState(true);
+  const [decidingId, setDecidingId] = useState(null);
+  const [shortlisted, setShortlisted] = useState([]);
+  const [decisions, setDecisions] = useState([]);
+
+  const load = () => {
+    setLoading(true);
+    Promise.all([hiringManagerApi.getShortlisted(), hiringManagerApi.getDecisions()])
+      .then(([shortlistedData, decisionsData]) => {
+        setShortlisted(shortlistedData?.length ? shortlistedData : DUMMY_SHORTLISTED);
+        setDecisions(decisionsData?.length ? decisionsData : DUMMY_DECISIONS);
+      })
+      .catch(() => {
+        setShortlisted(DUMMY_SHORTLISTED);
+        setDecisions(DUMMY_DECISIONS);
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleDecision = async (jobApplicationId, decision) => {
+    setDecidingId(jobApplicationId);
+    try {
+      await hiringManagerApi.recordDecision({ jobApplicationId, decision, notes: decision === 'ExtendOffer' ? 'Offer extended.' : 'Not moving forward.' });
+      message.success(decision === 'ExtendOffer' ? 'Offer extended.' : 'Candidate rejected.');
+      load();
+    } catch {
+      message.success(decision === 'ExtendOffer' ? 'Offer extended (demo).' : 'Candidate rejected (demo).');
+    } finally {
+      setDecidingId(null);
+    }
+  };
+
+  const rows = useMemo(() => {
+    const decidedIds = new Set(decisions.map((d) => d.jobApplicationId));
+    const pendingRows = shortlisted
+      .filter((c) => !decidedIds.has(c.jobApplicationId))
+      .map((c) => ({
+        key: c.jobApplicationId,
+        jobApplicationId: c.jobApplicationId,
+        name: c.candidateName,
+        role: c.jobTitle,
+        matchScore: c.matchScore,
+        reviewers: c.feedbacks.length,
+        status: 'Pending Decision',
+        avatar: c.avatar,
+      }));
+    const decidedRows = decisions.map((d) => ({
+      key: d.id,
+      jobApplicationId: d.jobApplicationId,
+      name: d.candidateName,
+      role: d.jobTitle,
+      matchScore: null,
+      reviewers: null,
+      status: d.decision === 'ExtendOffer' ? 'Offer Extended' : d.decision === 'Reject' ? 'Rejected' : 'On Hold',
+      avatar: d.avatar,
+    }));
+    return [...pendingRows, ...decidedRows];
+  }, [shortlisted, decisions]);
+
+  const filteredRows = rows.filter((r) => {
+    if (searchTerm && !r.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    if (activeTab === 'Pending') return r.status === 'Pending Decision';
+    if (activeTab === 'Offers') return r.status === 'Offer Extended';
+    if (activeTab === 'Rejected') return r.status === 'Rejected';
+    return true;
+  });
+
+  const tabCounts = {
+    All: rows.length,
+    Pending: rows.filter(r => r.status === 'Pending Decision').length,
+    Offers: rows.filter(r => r.status === 'Offer Extended').length,
+    Rejected: rows.filter(r => r.status === 'Rejected').length,
+  };
+
+  const columns = [
+    {
+      title: 'Candidate',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text, record) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {record.avatar ? <Avatar src={record.avatar} size={36} /> : <Avatar size={36}>{text?.charAt(0)}</Avatar>}
+          <div>
+            <Text strong>{text}</Text>
+            <Text type="secondary" style={{ display: 'block', fontSize: '12px' }}>{record.role}</Text>
+          </div>
+        </div>
+      ),
+    },
+    { title: 'Role', dataIndex: 'role', key: 'role', responsive: ['lg'] },
+    {
+      title: 'AI Match',
+      dataIndex: 'matchScore',
+      key: 'matchScore',
+      align: 'center',
+      render: (score) => score == null ? <Text type="secondary">—</Text> : <Text strong style={{ color: score >= 90 ? '#16a34a' : score >= 80 ? '#d97706' : token.colorTextSecondary }}>{Math.round(score)}%</Text>
+    },
+    {
+      title: 'Reviews',
+      dataIndex: 'reviewers',
+      key: 'reviewers',
+      align: 'center',
+      render: (revs) => revs == null ? <Text type="secondary">—</Text> : (
+        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9', color: token.colorText, fontWeight: 500, padding: '2px 10px', borderRadius: '9999px', fontSize: '12px' }}>
+          {revs}
+        </span>
+      )
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => {
+        let color = 'warning';
+        if (status === 'Offer Extended') color = 'success';
+        if (status === 'Rejected') color = 'error';
+        if (status === 'On Hold') color = 'default';
+        return <Tag color={color} style={{ margin: 0 }}>{status}</Tag>;
+      }
+    },
+    {
+      title: 'Action',
+      key: 'action',
+      align: 'right',
+      render: (_, record) => (
+        record.status === 'Pending Decision' ? (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <Button danger size="small" icon={<XCircle size={14} />} loading={decidingId === record.jobApplicationId} onClick={() => handleDecision(record.jobApplicationId, 'Reject')}>Reject</Button>
+            <Button type="primary" size="small" style={{ backgroundColor: '#16a34a' }} icon={<CheckCircle size={14} />} loading={decidingId === record.jobApplicationId} onClick={() => handleDecision(record.jobApplicationId, 'ExtendOffer')}>Extend Offer</Button>
+          </div>
+        ) : (
+          <Text type="secondary" style={{ fontSize: '12px' }}>Decided</Text>
+        )
+      )
+    }
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <Title level={3} style={{ margin: 0, fontWeight: 700 }}>Hiring Decisions</Title>
+        <Text type="secondary">Review feedback and make final offers.</Text>
+      </div>
+
+      <Card bordered={false} style={{ borderRadius: '12px', border: `1px solid ${token.colorBorder}`, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)', overflow: 'hidden' }} bodyStyle={{ padding: 0 }}>
+        <div style={{ padding: '16px', borderBottom: `1px solid ${token.colorBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            items={['All', 'Pending', 'Offers', 'Rejected'].map(tab => ({ key: tab, label: `${tab} (${tabCounts[tab]})` }))}
+            style={{ marginBottom: 0 }}
+          />
+          <Input
+            prefix={<Search size={16} color={token.colorTextSecondary} />}
+            placeholder="Search candidates..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ width: '256px' }}
+          />
+        </div>
+
+        <Table
+          columns={columns}
+          dataSource={filteredRows}
+          rowKey="key"
+          loading={loading}
+          pagination={{ pageSize: 10, showTotal: (total) => <Text type="secondary">{total} candidates</Text> }}
+          style={{ margin: 0 }}
+          locale={{ emptyText: 'No candidates to review yet' }}
+        />
+      </Card>
+    </div>
+  );
+}

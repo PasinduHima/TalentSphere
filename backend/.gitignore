@@ -1,0 +1,13 @@
+## .NET build artifacts
+bin/
+obj/
+*.user
+
+## Local runtime data
+**/App_Data/uploads/
+**/App_Data/logs/
+
+## IDE
+.vs/
+.vscode/
+*.suo
